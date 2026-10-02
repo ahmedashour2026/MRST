@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MRST | منصة المذاكرة</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Cairo',sans-serif}
+:root{--bg:#0b0f19;--card:#131b2e;--line:#243049;--txt:#f1f5f9;--mut:#94a3b8;--acc:#38bdf8;--ok:#22c55e;--bad:#ef4444}
+body{background:var(--bg);color:var(--txt);min-height:100vh}
+header{position:sticky;top:0;background:#0b0f19ee;border-bottom:1px solid var(--line);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;z-index:10}
+header h1{font-size:18px;font-weight:900}header h1 span{color:var(--acc)}
+.wrap{max-width:900px;margin:0 auto;padding:20px 14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+.btn{background:var(--acc);color:#04202e;border:none;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer;font-size:14px}
+.btn.sec{background:#1e293b;color:var(--txt)}.btn.red{background:var(--bad);color:#fff}.btn.grn{background:var(--ok);color:#fff}
+.btn:disabled{opacity:.5}
+input,select,textarea{width:100%;padding:10px;margin:5px 0 10px;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--txt);font-size:14px}
+label{font-size:13px;color:var(--acc);font-weight:700}
+h2{font-size:18px;margin-bottom:12px}
+.hidden{display:none!important}
+.tabs{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto}
+.tab{white-space:nowrap}.tab.on{background:var(--acc);color:#04202e}
+.lec{border-right:4px solid var(--acc)}
+.lec h3{font-size:16px;margin:6px 0}.lec p{color:var(--mut);font-size:13px;margin-bottom:12px;line-height:1.6}
+.badge{background:#38bdf822;color:var(--acc);padding:3px 9px;border-radius:5px;font-size:12px;font-weight:700}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.q{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+.opt{display:flex;gap:8px;align-items:center;padding:8px;border-radius:8px;margin:4px 0;border:1px solid var(--line);cursor:pointer;font-size:14px}
+.opt input{width:auto;margin:0}
+.opt.right{background:#22c55e22;border-color:var(--ok)}.opt.wrong{background:#ef444422;border-color:var(--bad)}
+.modal{position:fixed;inset:0;background:#000b;display:flex;justify-content:center;align-items:flex-start;padding:14px;overflow-y:auto;z-index:50}
+.modal .card{width:100%;max-width:640px;margin-top:20px}
+.bar{height:10px;background:var(--bg);border-radius:20px;overflow:hidden;margin-top:8px}
+.bar div{height:100%;width:0;background:var(--acc);transition:width .2s}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.scroll{overflow-x:auto}
+#toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:#1e293b;border:1px solid var(--line);padding:10px 18px;border-radius:10px;z-index:999;display:none;max-width:90%;font-size:14px}
+.score{font-size:28px;font-weight:900;text-align:center;margin:10px 0}
+
+body{background:radial-gradient(900px 500px at 85% -10%,#0ea5e930,transparent),radial-gradient(700px 500px at 0% 10%,#8b5cf622,transparent),var(--bg);background-attachment:fixed}
+header{backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.logo{font-size:24px;letter-spacing:1px;direction:ltr;display:flex;align-items:center;gap:6px}
+.logo i{font-style:normal;color:var(--acc);font-size:16px}
+.logo span{background:linear-gradient(90deg,#38bdf8,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero{text-align:center;padding:34px 8px 22px}
+.hero .pill{display:inline-block;background:#38bdf81a;border:1px solid #38bdf844;color:var(--acc);padding:5px 14px;border-radius:50px;font-size:12px;font-weight:700}
+.hero h2{font-size:34px;font-weight:900;line-height:1.35;margin:14px 0 10px}
+.hero h2 b{background:linear-gradient(90deg,#38bdf8,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--mut);line-height:1.8;max-width:520px;margin:0 auto 22px;font-size:15px}
+.feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:22px}
+.feat{background:#131b2ecc;border:1px solid var(--line);border-radius:14px;padding:16px 10px;text-align:center;transition:.25s}
+.feat:hover{transform:translateY(-4px);border-color:#38bdf866;box-shadow:0 12px 28px #38bdf81f}
+.feat div{font-size:28px;margin-bottom:6px}.feat b{display:block;font-size:14px;margin-bottom:3px}.feat small{color:var(--mut);font-size:12px}
+.stats{display:flex;justify-content:center;gap:12px;margin-bottom:22px}
+.stats div{background:#131b2ecc;border:1px solid var(--line);border-radius:14px;padding:12px 26px;text-align:center}
+.stats b{display:block;font-size:24px;color:var(--acc)}
+.stats small{color:var(--mut);font-size:12px}
+.secgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.seccard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 10px;text-align:center;cursor:pointer;transition:.25s}
+.seccard:hover{transform:translateY(-4px);border-color:#38bdf866;box-shadow:0 12px 28px #38bdf81f}
+.seccard div{font-size:30px;margin-bottom:6px}.seccard b{display:block;font-size:15px;margin-bottom:3px}.seccard small{color:var(--mut);font-size:12px}
+.secrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
+.card{box-shadow:0 10px 30px #0006}
+.btn{transition:.2s}.btn:hover{transform:translateY(-2px);filter:brightness(1.1)}
+.btn:not(.sec):not(.red):not(.grn){background:linear-gradient(135deg,#38bdf8,#818cf8);color:#06121f}
+.lec{transition:.25s;position:relative;overflow:hidden}
+.lec:hover{transform:translateY(-3px);box-shadow:0 14px 30px #38bdf81c}
+.lec h3{font-size:17px}
+#welcome{font-size:20px;margin-bottom:16px}
+footer{text-align:center;color:var(--mut);font-size:12px;padding:26px 10px;border-top:1px solid var(--line);margin-top:30px}
+footer b{color:var(--acc);letter-spacing:1px}
+@media(max-width:600px){.hero h2{font-size:26px}}
+
+body.light{--bg:#f1f5f9;--card:#ffffff;--line:#d9e2ee;--txt:#0f172a;--mut:#475569;--acc:#0284c7}
+body.light{background:radial-gradient(900px 500px at 85% -10%,#0ea5e92e,transparent),radial-gradient(700px 500px at 0% 10%,#8b5cf61f,transparent),var(--bg)}
+body.light header{background:#ffffffee}
+body.light .btn.sec{background:#e2e8f0;color:#0f172a}
+body.light .feat{background:#ffffffcc}
+body.light .stats div{background:#ffffffcc}
+body.light #toast{background:#fff;color:#0f172a}
+body.light .card{box-shadow:0 8px 24px #0f172a14}
+body.light .modal{background:#0f172a88}
+body.light .opt.right{background:#22c55e1f}body.light .opt.wrong{background:#ef44441f}
+body,header,.card,.btn,.feat,input,select,textarea{transition:background-color .3s,color .3s,border-color .3s}
+#themeBtn{font-size:16px;padding:8px 12px}
+
+.pdfwrap{width:100%;height:100%;display:flex;flex-direction:column;background:var(--bg)}
+.pdfbar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.pdfbar b{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#pdfPages{flex:1;overflow-y:auto;padding:10px 8px;background:#64748b33;-webkit-user-select:none;user-select:none}
+#pdfPages canvas{display:block;margin:0 auto 12px;background:#fff;box-shadow:0 4px 18px #0005;max-width:100%}
+.pdfmsg{text-align:center;padding:40px 10px;color:var(--mut)}
+@media print{body{display:none!important}}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<header>
+  <h1 class="logo"><i>◆</i>MR<span>ST</span></h1>
+  <div class="row">
+    <button class="btn sec" id="themeBtn" onclick="toggleTheme()" title="تغيير المظهر">☀️</button>
+    <button class="btn sec" onclick="openAdmin()">⚙️ الأدمن</button>
+    <button class="btn red hidden" id="logoutBtn" onclick="logout()">خروج</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="hero" id="hero">
+    <span class="pill" id="heroPill">🎓 منصة المذاكرة الذكية</span>
+    <h2>ذاكر بذكاء.. وامتحن <b>بثقة</b></h2>
+    <p>مع <b>MRST</b> هتلاقي كل محاضراتك ومذكراتك PDF في مكان واحد، وبعد كل محاضرة امتحان يقيس مستواك ويوريك درجتك فوراً.</p>
+    <div class="feats">
+      <div class="feat"><div>📄</div><b>مذكرات PDF</b><small>حمّلها وذاكر في أي وقت</small></div>
+      <div class="feat"><div>📝</div><b>امتحان بعد كل محاضرة</b><small>اختبر نفسك على طول</small></div>
+      <div class="feat"><div>⚡</div><b>نتيجة فورية</b><small>الإجابات الصحيحة قدامك</small></div>
+    </div>
+    <button class="btn" id="heroCta" onclick="heroGo()" style="margin-bottom:22px;padding:12px 26px;font-size:15px">ابدأ الآن 🚀</button>
+    <div class="stats hidden" id="stats">
+      <div><b id="stLec">0</b><small>محاضرة</small></div>
+      <div><b id="stEx">0</b><small>امتحان</small></div>
+    </div>
+  </div>
+
+  <!-- الدخول -->
+  <div class="card" id="authBox">
+    <div class="tabs">
+      <button class="btn tab on" id="tLogin" onclick="authTab('login')">تسجيل الدخول</button>
+      <button class="btn sec tab" id="tReg" onclick="authTab('reg')">حساب جديد</button>
+    </div>
+    <div id="loginForm">
+      <label>رقم الهاتف</label><input type="tel" id="lPhone">
+      <label>كلمة المرور</label><input type="password" id="lPass">
+      <button class="btn" onclick="doLogin()">دخول 🚀</button>
+    </div>
+    <div id="regForm" class="hidden">
+      <label>الاسم بالكامل</label><input id="rName">
+      <label>رقم الهاتف</label><input type="tel" id="rPhone">
+      <label>كلمة المرور</label><input type="password" id="rPass">
+      <button class="btn" id="regBtn" onclick="doRegister()">إرسال طلب انضمام ✨</button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="pendingBox"><h2>⏳ طلبك قيد المراجعة</h2><p style="color:var(--mut)">هيتفتح لك المحتوى أوتوماتيك أول ما يتم قبول حسابك.</p></div>
+
+  <!-- المحاضرات -->
+  <div id="content" class="hidden">
+    <h2 id="welcome"></h2>
+    <div id="secGrid" class="secgrid"></div>
+    <div id="lecWrap" class="hidden">
+      <div class="row" style="align-items:center;margin-bottom:14px">
+        <button class="btn sec" onclick="backSections()">→ الأقسام</button>
+        <h2 id="secTitle" style="margin:0"></h2>
+      </div>
+      <div id="lectures"></div>
+    </div>
+  </div>
+
+  <!-- الأدمن -->
+  <div class="card hidden" id="adminPanel">
+    <div class="tabs">
+      <button class="btn tab on" id="aTabLec" onclick="adminTab('lec')">رفع محاضرة + امتحان</button>
+      <button class="btn sec tab" id="aTabSec" onclick="adminTab('sec')">الأقسام</button>
+      <button class="btn sec tab" id="aTabSt" onclick="adminTab('st')">الطلاب</button>
+      <button class="btn sec tab" id="aTabRes" onclick="adminTab('res')">النتائج</button>
+      <button class="btn red tab" onclick="adminLogout()">خروج</button>
+    </div>
+
+    <form id="lecForm">
+      <label>عنوان المحاضرة</label><input id="lTitle" required>
+      <label>القسم</label><select id="lSubject" required></select>
+      <label>وصف قصير</label><textarea id="lDesc" rows="2"></textarea>
+      <label>ملف PDF (من الجهاز، حتى 5 ميجا)</label>
+      <input type="file" id="lFile" accept="application/pdf" required>
+      <div class="bar hidden" id="pWrap"><div id="pFill"></div></div>
+      <h2 style="margin-top:14px">📝 امتحان المحاضرة</h2>
+      <label>مدة الامتحان بالدقائق (اتركها 0 لو بدون وقت)</label><input type="number" id="lDur" min="0" value="0">
+      <div id="qBuilder"></div>
+      <button type="button" class="btn sec" onclick="addQ()">+ إضافة سؤال</button>
+      <button type="submit" class="btn" id="pubBtn" style="width:100%;margin-top:16px">نشر المحاضرة والامتحان 🚀</button>
+    </form>
+
+    <div id="secTab" class="hidden">
+      <label>اسم القسم الجديد</label>
+      <div class="row"><input id="secName" placeholder="مثال: الفيزياء" style="flex:1;min-width:160px"><button class="btn" onclick="addSection()" style="align-self:center">+ إضافة قسم</button></div>
+      <div id="secList" style="margin-top:12px"></div>
+    </div>
+
+    <div id="stTab" class="hidden scroll"><table><thead><tr><th>الاسم</th><th>الهاتف</th><th>الحالة</th><th>تحكم</th></tr></thead><tbody id="stBody"></tbody></table></div>
+    <div id="resTab" class="hidden scroll"><table><thead><tr><th>الطالب</th><th>المحاضرة</th><th>الدرجة</th><th>تحكم</th></tr></thead><tbody id="resBody"></tbody></table></div>
+  </div>
+</div>
+<footer><b>MRST</b> © 2026 — منصة المذاكرة</footer>
+
+<!-- عارض الـ PDF -->
+<div class="modal hidden" id="pdfModal" style="padding:0;align-items:stretch">
+  <div class="pdfwrap">
+    <div class="pdfbar"><b id="pdfTitle"></b><button class="btn red" onclick="closePdf()">✕ إغلاق</button></div>
+    <div id="pdfPages" oncontextmenu="return false"></div>
+  </div>
+</div>
+
+<!-- نافذة الأدمن -->
+<div class="modal hidden" id="pwModal"><div class="card" style="max-width:340px;text-align:center">
+  <h2>دخول الأدمن</h2><input type="password" id="adminPw" style="text-align:center">
+  <div class="row"><button class="btn" style="flex:1" onclick="adminLogin()">تأكيد</button><button class="btn sec" style="flex:1" onclick="el('pwModal').classList.add('hidden')">إلغاء</button></div>
+</div></div>
+
+<!-- نافذة الامتحان -->
+<div class="modal hidden" id="examModal"><div class="card">
+  <h2 id="examTitle"></h2>
+  <div id="timer" class="score hidden" style="font-size:20px"></div>
+  <div id="examBody"></div>
+  <div class="row" style="margin-top:12px">
+    <button class="btn grn" id="examSubmit" onclick="submitExam()">تسليم الامتحان ✅</button>
+    <button class="btn sec" onclick="closeExam()">إغلاق</button>
+  </div>
+</div></div>
+
+<script>
+/* ===== الإعدادات: غيّرها ببياناتك ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDH27WV51ipUYTrEjlYsy30d2feKXOqpPg",
+  authDomain: "mrst-dcb1a.firebaseapp.com",
+  projectId: "mrst-dcb1a",
+  storageBucket: "mrst-dcb1a.firebasestorage.app",
+  messagingSenderId: "120320555950",
+  appId: "1:120320555950:web:9cb100b037b91022c7663f"
+};
+const ADMIN_PASSWORD = "hamoody2008";
+const MAX_PDF = 5 * 1024 * 1024; // 5MB (بيتخزن جوه Firestore)
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const el = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let me = localStorage.getItem('sPhone'), meName = '', isAdmin = false, unsubStudent = null, lecMap = {}, curExam = null;
+
+function toast(m,_,ms){const t=el('toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',ms||3500)}
+
+/* ===== الطلاب ===== */
+function authTab(t){
+  el('loginForm').classList.toggle('hidden',t!=='login'); el('regForm').classList.toggle('hidden',t!=='reg');
+  el('tLogin').className='btn tab '+(t==='login'?'on':'sec'); el('tReg').className='btn tab '+(t==='reg'?'on':'sec');
+}
+function fbError(e){
+  console.error(e);
+  const c=e&&e.code||'';
+  if(c==='permission-denied') return toast('Firestore رافض الكتابة: عدّل Rules في Firebase (لازم تسمح بالقراءة والكتابة) ❌');
+  if(c==='unavailable'||c==='failed-precondition') return toast('مفيش اتصال بـ Firebase: اتأكد من النت ومن بيانات firebaseConfig ❌');
+  toast('حصل خطأ: '+(e.message||c||'غير معروف'));
+}
+function configOk(){
+  if(firebaseConfig.apiKey.startsWith('YOUR_')||firebaseConfig.projectId==='YOUR_PROJECT'){
+    toast('لازم تحط بيانات Firebase بتاعتك في أول الـ script الأول ⚠️'); return false}
+  return true;
+}
+async function doRegister(){
+  const name=el('rName').value.trim(),phone=el('rPhone').value.trim(),pass=el('rPass').value.trim();
+  if(!name||!phone||!pass) return toast('املأ كل الحقول');
+  if(!/^\d{8,15}$/.test(phone)) return toast('رقم الهاتف لازم يكون أرقام بس (من غير مسافات أو رموز)');
+  if(!configOk()) return;
+  const btn=el('regBtn'); btn.disabled=true; btn.textContent='جاري الإرسال...';
+  try{
+    const ref=db.collection('students').doc(phone);
+    const d=await ref.get();
+    if(d.exists) return toast('الرقم ده مسجل قبل كده، جرّب تسجيل الدخول');
+    await ref.set({name,phone,password:pass,status:'pending',createdAt:new Date()});
+    me=phone; localStorage.setItem('sPhone',phone); watchStudent(); toast('تم إرسال طلبك بنجاح ✅');
+  }catch(e){fbError(e)}
+  finally{btn.disabled=false;btn.textContent='إرسال طلب انضمام ✨'}
+}
+async function doLogin(){
+  const phone=el('lPhone').value.trim(),pass=el('lPass').value.trim();
+  if(!phone||!pass) return toast('اكتب رقم الهاتف وكلمة المرور');
+  if(!configOk()) return;
+  try{
+    const d=await db.collection('students').doc(phone).get();
+    if(d.exists && d.data().password===pass){me=phone;localStorage.setItem('sPhone',phone);watchStudent()}
+    else toast('بيانات غير صحيحة');
+  }catch(e){fbError(e)}
+}
+function watchStudent(){
+  if(unsubStudent) unsubStudent();
+  unsubStudent=db.collection('students').doc(me).onSnapshot(d=>{
+    if(!d.exists) return logout();
+    const s=d.data(); meName=s.name;
+    el('authBox').classList.add('hidden'); el('logoutBtn').classList.remove('hidden');
+    const ok=s.status==='approved';
+    el('pendingBox').classList.toggle('hidden',ok); el('content').classList.toggle('hidden',!ok);
+    el('heroPill').textContent='🎓 أهلاً '+s.name;
+    el('heroCta').textContent=ok?'تصفّح محاضراتك 📚':'حالة طلبك ⏳';
+    if(ok){
+      el('welcome').textContent='اختار القسم 📚';
+      el('stats').classList.remove('hidden');
+      loadLectures();
+    }
+  });
+}
+function logout(){
+  if(unsubStudent) unsubStudent(); unsubStudent=null; localStorage.removeItem('sPhone'); me=null;
+  ['pendingBox','content','logoutBtn','stats'].forEach(i=>el(i).classList.add('hidden'));
+  el('authBox').classList.remove('hidden'); el('hero').classList.remove('hidden');
+  el('heroPill').textContent='🎓 منصة المذاكرة الذكية'; el('heroCta').textContent='ابدأ الآن 🚀'; backSections();
+}
+function heroGo(){
+  const id=!me?'authBox':(el('content').classList.contains('hidden')?'pendingBox':'content');
+  el(id).scrollIntoView({behavior:'smooth'});
+}
+
+/* ===== عرض المحاضرات ===== */
+let unsubLec=null;
+let lastSnap=null;
+function loadLectures(){
+  startSections();
+  if(unsubLec) return;
+  unsubLec=db.collection('lectures').orderBy('createdAt','desc').onSnapshot(snap=>{
+    lastSnap=snap; lecMap={};
+    snap.forEach(doc=>{lecMap[doc.id]=doc.data()});
+    el('stLec').textContent=snap.size;
+    el('stEx').textContent=Object.values(lecMap).filter(l=>(l.questions||[]).length).length;
+    renderSections(); renderLectures();
+  });
+}
+function renderLectures(){
+  const snap=lastSnap; if(!snap||curSec===null) return;
+  const box=el('lectures'); box.innerHTML='';
+  const docs=snap.docs.filter(d=>d.data().subject===curSec);
+  if(!docs.length) box.innerHTML='<p style="color:var(--mut)">لسه مفيش محاضرات في القسم ده.</p>';
+    docs.forEach(doc=>{
+      const l=doc.data();
+      const n=(l.questions||[]).length;
+      const c=document.createElement('div'); c.className='card lec';
+      c.innerHTML=`<span class="badge">${esc(l.subject)}</span><h3>${esc(l.title)}</h3><p>${esc(l.desc)}</p>
+        <div class="row">${l.pdfChunks?`<button class="btn" onclick="openPdf('${doc.id}')">📄 فتح الملف</button>`:(l.pdfUrl?`<a class="btn" href="${esc(l.pdfUrl)}" target="_blank" rel="noopener" style="text-decoration:none">📄 فتح PDF</a>`:'')}
+        ${n?`<button class="btn grn" onclick="openExam('${doc.id}')">📝 امتحان المحاضرة (${n} سؤال${l.duration?' • '+l.duration+' د':''})</button>`:''}
+        ${isAdmin?`<button class="btn red" onclick="delLecture('${doc.id}')">حذف</button>`:''}</div>`;
+      box.appendChild(c);
+    });
+}
+
+/* ===== الأقسام ===== */
+let secs=[], curSec=null, unsubSec=null;
+function startSections(){
+  if(unsubSec) return;
+  unsubSec=db.collection('sections').orderBy('createdAt').onSnapshot(s=>{
+    secs=s.docs.map(d=>({id:d.id,name:d.data().name}));
+    renderSections(); fillSecSelect(); renderSecAdmin();
+  },fbError);
+}
+function secNames(){
+  const n=secs.map(s=>s.name);
+  Object.values(lecMap).forEach(l=>{const s=(l.subject||'').trim(); if(s&&!n.includes(s)) n.push(s)});
+  return n;
+}
+function renderSections(){
+  const names=secNames(), lecs=Object.values(lecMap);
+  el('secGrid').innerHTML=names.length
+    ? names.map(n=>`<div class="seccard" data-n="${esc(n)}" onclick="openSec(this.dataset.n)"><div>📚</div><b>${esc(n)}</b><small>${lecs.filter(l=>l.subject===n).length} محاضرة</small></div>`).join('')
+    : '<p style="color:var(--mut)">لسه مفيش أقسام.</p>';
+}
+function openSec(n){
+  curSec=n; el('secTitle').textContent=n;
+  el('secGrid').classList.add('hidden'); el('lecWrap').classList.remove('hidden');
+  renderLectures(); window.scrollTo({top:0,behavior:'smooth'});
+}
+function backSections(){
+  curSec=null; el('lecWrap').classList.add('hidden'); el('secGrid').classList.remove('hidden');
+}
+function fillSecSelect(){
+  const sel=el('lSubject'), v=sel.value;
+  sel.innerHTML=secs.length
+    ? secs.map(s=>`<option value="${esc(s.name)}">${esc(s.name)}</option>`).join('')
+    : '<option value="">— أضف قسم الأول من تبويب الأقسام —</option>';
+  if(v) sel.value=v;
+}
+function renderSecAdmin(){
+  el('secList').innerHTML=secs.length
+    ? secs.map(s=>`<div class="secrow"><b>${esc(s.name)}</b><button class="btn red" onclick="delSection('${s.id}')">حذف</button></div>`).join('')
+    : '<p style="color:var(--mut)">لسه مفيش أقسام.</p>';
+}
+async function addSection(){
+  const name=el('secName').value.trim();
+  if(!name) return toast('اكتب اسم القسم');
+  if(secs.some(s=>s.name===name)) return toast('القسم ده موجود بالفعل');
+  try{
+    await db.collection('sections').add({name,createdAt:new Date()});
+    el('secName').value=''; toast('تمت إضافة القسم ✅');
+  }catch(e){fbError(e)}
+}
+async function delSection(id){
+  if(!confirm('حذف القسم؟ (المحاضرات اللي جواه مش هتتمسح)')) return;
+  try{ await db.collection('sections').doc(id).delete() }catch(e){fbError(e)}
+}
+
+/* ===== الامتحان (محاولة واحدة + توقيت) ===== */
+let timerId=null, examDone=true;
+async function openExam(id){
+  const l=lecMap[id], rid=me+'_'+id;
+  const prev=await db.collection('results').doc(rid).get();
+  if(prev.exists){const p=prev.data();return toast(`دخلت الامتحان ده قبل كده. درجتك: ${p.score} / ${p.total}`)}
+  const mins=l.duration||0;
+  if(!confirm('الامتحان له محاولة واحدة فقط'+(mins?` ومدته ${mins} دقيقة`:'')+'. تبدأ الآن؟')) return;
+  curExam={id,l,rid}; examDone=false;
+  await db.collection('results').doc(rid).set({phone:me,name:meName,lectureId:id,lectureTitle:l.title,score:0,total:l.questions.length,submitted:false,createdAt:new Date()});
+  el('examTitle').textContent='امتحان: '+l.title;
+  el('examBody').innerHTML=l.questions.map((q,i)=>`<div class="q"><b>${i+1}. ${esc(q.text)}</b>`+
+    q.options.map((o,j)=>`<label class="opt"><input type="radio" name="q${i}" value="${j}"> ${esc(o)}</label>`).join('')+`</div>`).join('');
+  el('examSubmit').classList.remove('hidden'); el('examModal').classList.remove('hidden');
+  const tm=el('timer'); tm.classList.toggle('hidden',!mins); clearInterval(timerId);
+  if(mins){
+    let left=mins*60;
+    const tick=()=>{tm.textContent='⏱️ '+Math.floor(left/60)+':'+String(left%60).padStart(2,'0'); tm.style.color=left<=60?'var(--bad)':'var(--txt)'};
+    tick();
+    timerId=setInterval(()=>{left--; tick(); if(left<=0){toast('خلص الوقت، تم تسليم إجاباتك'); finishExam()}},1000);
+  }
+}
+function closeExam(){
+  if(!examDone){
+    if(!confirm('لو قفلت دلوقتي هيتم تسليم إجاباتك الحالية ومش هتقدر تعيد الامتحان. تقفل؟')) return;
+    finishExam();
+  }
+  el('examModal').classList.add('hidden');
+}
+function submitExam(){
+  const n=document.querySelectorAll('#examBody .q input:checked').length;
+  if(n<curExam.l.questions.length && !confirm('فيه أسئلة مجاوبتش عليها، تسلّم برضو؟')) return;
+  finishExam();
+}
+function finishExam(){
+  if(examDone) return; examDone=true; clearInterval(timerId); el('timer').classList.add('hidden');
+  const qs=curExam.l.questions; let score=0;
+  const body=el('examBody');
+  body.querySelectorAll('.q').forEach((box,i)=>{
+    const r=document.querySelector(`input[name=q${i}]:checked`); const a=r?+r.value:-1;
+    const opts=box.querySelectorAll('.opt'); const right=qs[i].correct;
+    if(a===right) score++;
+    opts[right].classList.add('right');
+    if(a!==-1 && a!==right) opts[a].classList.add('wrong');
+    opts.forEach(o=>o.querySelector('input').disabled=true);
+  });
+  body.insertAdjacentHTML('afterbegin',`<div class="score">${score} / ${qs.length} ${score/qs.length>=0.5?'🎉':'💪'}</div>`);
+  el('examSubmit').classList.add('hidden');
+  db.collection('results').doc(curExam.rid).update({score,submitted:true});
+}
+
+/* ===== الأدمن ===== */
+function openAdmin(){ if(isAdmin){el('adminPanel').classList.remove('hidden');return} el('pwModal').classList.remove('hidden') }
+function adminLogin(){
+  if(el('adminPw').value!==ADMIN_PASSWORD) return toast('كلمة المرور غلط');
+  isAdmin=true; el('pwModal').classList.add('hidden'); el('adminPanel').classList.remove('hidden');
+  if(!document.querySelector('.q-block')) addQ();
+  listenStudents(); listenResults(); if(unsubLec){unsubLec();unsubLec=null} loadLectures();
+}
+function adminLogout(){isAdmin=false;el('adminPanel').classList.add('hidden');el('adminPw').value='';if(unsubLec){unsubLec();unsubLec=null;loadLectures()}}
+function adminTab(t){
+  el('lecForm').classList.toggle('hidden',t!=='lec'); el('secTab').classList.toggle('hidden',t!=='sec'); el('stTab').classList.toggle('hidden',t!=='st'); el('resTab').classList.toggle('hidden',t!=='res');
+  [['aTabLec','lec'],['aTabSec','sec'],['aTabSt','st'],['aTabRes','res']].forEach(([id,k])=>el(id).className='btn tab '+(k===t?'on':'sec'));
+}
+function addQ(){
+  const d=document.createElement('div'); d.className='q q-block';
+  d.innerHTML=`<label>نص السؤال</label><textarea rows="2" class="qt"></textarea>
+    ${[0,1,2,3].map(i=>`<input class="qo" placeholder="الاختيار ${i+1}">`).join('')}
+    <label>الإجابة الصحيحة</label><select class="qc"><option value="0">الاختيار 1</option><option value="1">الاختيار 2</option><option value="2">الاختيار 3</option><option value="3">الاختيار 4</option></select>
+    <button type="button" class="btn red" onclick="this.parentElement.remove()">حذف السؤال</button>`;
+  el('qBuilder').appendChild(d);
+}
+function collectQuestions(){
+  const out=[];
+  for(const b of document.querySelectorAll('.q-block')){
+    const text=b.querySelector('.qt').value.trim(); const options=[...b.querySelectorAll('.qo')].map(i=>i.value.trim());
+    if(!text && options.every(o=>!o)) continue; // سؤال فاضي يتجاهل
+    if(!text || options.some(o=>!o)) throw new Error('كمّل نص السؤال والـ4 اختيارات في كل سؤال');
+    out.push({text,options,correct:+b.querySelector('.qc').value});
+  }
+  return out;
+}
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const pdfCache={}; let pdfDoc=null, pdfTok=0;
+function watermark(ctx,w,h){
+  const t=(meName||'MRST')+' • '+(me||'');
+  ctx.save(); ctx.globalAlpha=.12; ctx.fillStyle='#000'; ctx.textAlign='center';
+  ctx.font='bold '+Math.round(w/26)+'px Cairo,sans-serif'; ctx.rotate(-Math.PI/6);
+  const R=w+h;
+  for(let y=-R;y<R;y+=w/4) for(let x=-R;x<R;x+=w/1.2) ctx.fillText(t,x,y);
+  ctx.restore();
+}
+async function openPdf(id){
+  const l=lecMap[id], tok=++pdfTok, box=el('pdfPages');
+  el('pdfTitle').textContent=l.title; box.innerHTML='<p class="pdfmsg">جاري تحميل الملف... ⏳</p>';
+  el('pdfModal').classList.remove('hidden'); document.body.style.overflow='hidden';
+  try{
+    if(!pdfCache[id]){
+      const sn=await db.collection('lectures').doc(id).collection('chunks').orderBy('i').get();
+      let b64=''; sn.forEach(d=>{b64+=d.data().data});
+      const bin=atob(b64), arr=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+      pdfCache[id]=arr;
+    }
+    const doc=await pdfjsLib.getDocument({data:pdfCache[id].slice()}).promise;
+    if(tok!==pdfTok){doc.destroy();return}
+    pdfDoc=doc; box.innerHTML='';
+    const width=Math.min(box.clientWidth-16,900), dpr=Math.min(window.devicePixelRatio||1,2);
+    for(let n=1;n<=doc.numPages;n++){
+      if(tok!==pdfTok) return;
+      const page=await doc.getPage(n);
+      const sc=width/page.getViewport({scale:1}).width;
+      const vp=page.getViewport({scale:sc*dpr});
+      const cv=document.createElement('canvas'); cv.width=vp.width; cv.height=vp.height;
+      cv.style.width=(vp.width/dpr)+'px'; cv.style.height=(vp.height/dpr)+'px';
+      box.appendChild(cv);
+      const ctx=cv.getContext('2d');
+      await page.render({canvasContext:ctx,viewport:vp}).promise;
+      watermark(ctx,vp.width,vp.height);
+    }
+  }catch(e){
+    console.error(e);
+    if(tok===pdfTok) box.innerHTML='<p class="pdfmsg">تعذّر فتح الملف ❌<br><small>'+esc(e.message||'')+'</small></p>';
+  }
+}
+function closePdf(){
+  pdfTok++; if(pdfDoc){pdfDoc.destroy();pdfDoc=null}
+  el('pdfPages').innerHTML=''; el('pdfModal').classList.add('hidden'); document.body.style.overflow='';
+}
+el('lecForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const file=el('lFile').files[0];
+  if(!file||file.type!=='application/pdf') return toast('اختار ملف PDF');
+  if(file.size>MAX_PDF) return toast('الملف أكبر من 5 ميجا');
+  let questions; try{questions=collectQuestions()}catch(err){return toast(err.message)}
+  const btn=el('pubBtn'); btn.disabled=true; btn.textContent='جاري رفع الـ PDF... ⏳';
+  el('pWrap').classList.remove('hidden');
+  const reset=()=>{btn.disabled=false;btn.textContent='نشر المحاضرة والامتحان 🚀';el('pWrap').classList.add('hidden');el('pFill').style.width='0'};
+  try{
+    const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file)});
+    const CH=700000, n=Math.ceil(b64.length/CH);
+    const ref=db.collection('lectures').doc();
+    for(let i=0;i<n;i++){
+      await ref.collection('chunks').doc(String(i).padStart(3,'0')).set({i,data:b64.slice(i*CH,(i+1)*CH)});
+      el('pFill').style.width=Math.round((i+1)/n*100)+'%';
+    }
+    await ref.set({title:el('lTitle').value,subject:el('lSubject').value,desc:el('lDesc').value,pdfChunks:n,pdfName:file.name.replace(/\.pdf$/i,''),questions,duration:Math.max(0,+el('lDur').value||0),createdAt:new Date()});
+    el('lecForm').reset(); el('qBuilder').innerHTML=''; addQ(); toast('تم النشر ✅');
+  }catch(err){fbError(err)}
+  finally{reset()}
+});
+async function delLecture(id){
+  if(!confirm('حذف المحاضرة؟')) return;
+  try{
+    const sn=await db.collection('lectures').doc(id).collection('chunks').get();
+    await Promise.all(sn.docs.map(d=>d.ref.delete()));
+    await db.collection('lectures').doc(id).delete();
+  }catch(e){fbError(e)}
+}
+function listenStudents(){
+  db.collection('students').orderBy('createdAt','desc').onSnapshot(s=>{
+    el('stBody').innerHTML=''; s.forEach(d=>{const u=d.data(),tr=document.createElement('tr');
+      tr.innerHTML=`<td>${esc(u.name)}</td><td>${esc(u.phone)}</td><td>${u.status==='approved'?'مقبول ✅':'انتظار ⏳'}</td>
+      <td><button class="btn grn" onclick="setStatus('${esc(u.phone)}','approved')">قبول</button> <button class="btn red" onclick="setStatus('${esc(u.phone)}','del')">حذف</button></td>`;
+      el('stBody').appendChild(tr)});
+  });
+}
+function setStatus(p,s){ if(s==='del'){ if(confirm('حذف الطالب؟')) db.collection('students').doc(p).delete() } else db.collection('students').doc(p).update({status:s}) }
+function allowRetry(id){ if(confirm('السماح للطالب بإعادة الامتحان؟ هيتمسح نتيجته الحالية.')) db.collection('results').doc(id).delete() }
+function listenResults(){
+  db.collection('results').orderBy('createdAt','desc').limit(100).onSnapshot(s=>{
+    el('resBody').innerHTML=''; s.forEach(d=>{const r=d.data(),tr=document.createElement('tr');
+      tr.innerHTML=`<td>${esc(r.name)}</td><td>${esc(r.lectureTitle)}</td><td>${r.score} / ${r.total}${r.submitted===false?' (لم يُسلَّم)':''}</td><td><button class="btn red" onclick="allowRetry('${d.id}')">سماح بإعادة</button></td>`; el('resBody').appendChild(tr)});
+  });
+}
+
+/* ===== الوضع الفاتح / الداكن ===== */
+function applyTheme(light){
+  document.body.classList.toggle('light',light);
+  el('themeBtn').textContent=light?'🌙':'☀️';
+}
+function toggleTheme(){
+  const light=!document.body.classList.contains('light');
+  applyTheme(light);
+  try{localStorage.setItem('mrstTheme',light?'light':'dark')}catch(e){}
+}
+try{applyTheme(localStorage.getItem('mrstTheme')==='light')}catch(e){}
+
+if(me) watchStudent();
+</script>
+</body>
+</html>
